@@ -26,7 +26,7 @@
 #define BTN_Reset 4                                 // Voltage free reset input pin.
 
 int Timer_Counter = 0;                              // Used for mode timings.
-int Timer_Trigger = 80;                             // The expected time in which a pallet will pass.
+int Timer_Trigger = 90;                             // The expected time in which a pallet will pass.
 int Timer_Inhibit = 10;                             // The amount of time in which the drive will be stoppped.
 int Timer_ReTrigger = 4;                            // The amount of time before the system can be reset.
 int Button_State = 0;                               // The default reset button state.
