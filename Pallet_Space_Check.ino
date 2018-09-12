@@ -26,13 +26,17 @@
 #define BTN_Reset 4                                 // Voltage free reset input pin.
 
 int Timer_Counter = 0;                              // Used for mode timings.
-int Timer_Trigger = 90;                             // The expected time in which a pallet will pass + required space. (default 80 - no space)
-int Timer_Inhibit = 10;                             // The amount of time in which the drive will be stoppped.
-int Timer_ReTrigger = 4;                            // The amount of time before the system can be reset.
 int Button_State = 0;                               // The default reset button state.
-
+int Error_Tolerance_Counter = 0;                    // Used for allowing errors.
 String Operation_State = "Waiting_Pallet";          // The mode indexer.
 bool Pallet_Present = 0;                            // Memory for pallet presence.
+bool Error_Tolerance_Active = false;
+
+// USER DEFINED VARIABLES
+int Timer_Trigger = 85;                             // The expected time in which a pallet will pass + required space. (default 80 - no space)
+int Timer_Inhibit = 10;                             // The amount of time in which the drive will be stoppped.
+int Timer_ReTrigger = 4;                            // The amount of time before the system can be reset.
+int Error_Tolerance_Trigger = 5;                   // The amount of allowable errors (vibrations etc).
 
 void setup() {
 
@@ -95,8 +99,10 @@ digitalWrite(RLY_Visual_Error,HIGH);
   
 if (Pallet_Present){
 Operation_State = "Monitoring_Pallet";
+Error_Tolerance_Active = true;
 }
 }
+
 
 // [MODE] => MONITORING PALLET
 if(Operation_State == "Monitoring_Pallet"){
@@ -106,16 +112,31 @@ Serial.print(Timer_Counter);
 digitalWrite(RLY_Inhibit,HIGH);                   // Update outputs.
 digitalWrite(RLY_Visual_Error,HIGH);              // Update outputs.
 
-if (!Pallet_Present){
+if(Error_Tolerance_Counter>Error_Tolerance_Trigger){
+Error_Tolerance_Active = false;                   // Switches OFF any error tolerance.
+}
+
+if (!Pallet_Present){                             // When no pallet is detected undertake check.
+
+if(Error_Tolerance_Active){
+Error_Tolerance_Counter = Error_Tolerance_Counter + 1;
+Serial.print("|| ET ACTIVE");
+}
+
+else{
 Timer_Counter = 0;
+Error_Tolerance_Counter = 0;
 Operation_State = "Waiting_Pallet";
+}
 }
 
 if(Timer_Counter>Timer_Trigger){
 Operation_State = "Inhibit_Drive";
 }
+
 Timer_Counter = Timer_Counter + 1;  
 }
+
 
 // [MODE] => STOP DOWNSTREAM DRIVE
 if(Operation_State == "Inhibit_Drive"){
@@ -130,6 +151,7 @@ Operation_State = "ReTrigger_Delay";              // Change mode.
 }
   Timer_Counter = Timer_Counter + 1;              // Increment counter.
 }
+
 
 // [MODE] => PREVENT RE-TRIGGER
 if(Operation_State == "ReTrigger_Delay"){
@@ -146,7 +168,6 @@ Operation_State = "Waiting_Reset";                // Change mode.
 }
   Timer_Counter = Timer_Counter + 1;              // Increment counter.
 }
-
 
 
 // [MODE] => NEED TO RESET SYSTEM
